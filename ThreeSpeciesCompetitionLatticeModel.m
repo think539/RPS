@@ -1,6 +1,6 @@
 clc; clear;
 %초기값
-sigma = 1; mu = 1; epsilon = 6; N=200;
+sigma = 1; mu = 1; epsilon = 3/8; N=500;
 
 %초기 종 행렬(4:빈 공간,1:바위,2:가위,3:보)
 values = [repmat(1, 1, N*N/4), repmat(2, 1, N*N/4), repmat(3, 1, N*N/4), repmat(4, 1, N*N/4)];
@@ -10,7 +10,7 @@ matrix = reshape(shuffledValues, N, N);
 % 비디오를 저장할 Figure 생성
 fig = figure;
 % 프레임을 저장할 구조체 배열 초기화
-numFrames=10000;
+numFrames=50000;
 frames(numFrames) = struct('cdata', [], 'colormap', []);
     
 for k = 1:numFrames
@@ -37,9 +37,9 @@ for k = 1:numFrames
 end
     
 % 비디오 파일로 애니메이션 저장
-videoFilename = 'epsilon2.4_120.avi';
+videoFilename = 'mobility5_500_120.avi';
 v = VideoWriter(videoFilename);
-v.FrameRate = 120; % 프레임 속도를 설정 (30 FPS)
+v.FrameRate = 240; % 프레임 속도를 설정 (30 FPS)
 
 open(v);
 for k = 1:numFrames
@@ -57,40 +57,51 @@ close(fig);
 function result=game(m,N)
     result = m;
     for i = 1:N*N
-        t=i/N*N;
         row = randi([1, N]);
         col = randi([1, N]);
         if m(row,col) ~= 4
             li=sites(row,col,N);
             active = li(randi([1, 4]),:);
-            if randomCharacter(t) == 's'
-                result(active(1),active(2)) = selection(result(row,col),result(active(1),active(2)));
-            elseif randomCharacter(t) == 'r'
-                if m(active(1),active(2)) == 4
-                    result(active(1),active(2)) = result(row,col);
+            num=0;
+            while num == 0
+                act = randomAct(1,1,125);
+                if act == 's'
+                    result(active(1),active(2)) = selection(result(row,col),result(active(1),active(2)));
+                    num=1;
+                elseif act == 'r'
+                    if m(active(1),active(2)) == 4
+                        result(active(1),active(2)) = result(row,col);
+                    end
+                    num=1;
+                elseif act == 'e'
+                    a = result(active(1),active(2));
+                    b = result(row,col);
+                    result(row,col) = a;
+                    result(active(1),active(2)) = b;
+                    num=1;
                 end
-            elseif randomCharacter(t) == 'e'
-                a = result(active(1),active(2));
-                b = result(row,col);
-                result(row,col) = a;
-                result(active(1),active(2)) = b;
+                if num == 0
+                    temp1=row;
+                    row = active(1); active(1) = temp1;
+                    temp2=col;
+                    col = active(2); active(2) = temp2;
+                end
             end
         end
     end
 end
 
-function result = randomCharacter(t)
+function result = randomAct(sigma,mu,epsilon)
     % 0과 1 사이의 난수를 생성
     randValue = rand;
 
     % 각 문자에 해당하는 확률
-    p_s = 1 / 8;
-    p_r = 1 / 8;
+    p = 1 / (sigma+mu+epsilon);
 
     % 확률에 따라 문자를 선택
-    if randValue < p_s
+    if randValue < p
         result = 's';
-    elseif randValue < p_s + p_r
+    elseif randValue < 2*p
         result = 'r';
     else
         result = 'e';
